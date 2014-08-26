@@ -1,0 +1,7 @@
+In KODIAK we found an ACM that ib_acme reported wrong source gid.
+The value didn't correspond any gid in subnet.
+
+ACM gets source gid during prdb parsing and stores it as part of a
+path record object in its cache.
+We can't reproduce the problem any more. The patch allow to ensure that
+in case of ibv_query_gid failure we don't store garbage in path record.
