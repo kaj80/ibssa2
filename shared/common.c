@@ -41,6 +41,7 @@
 #include <inttypes.h>
 #include <infiniband/ssa_mad.h>
 #include <common.h>
+#include <ssa_admin.h>
 
 const char *month_str[12] = {
 	"Jan",
@@ -155,4 +156,43 @@ void ssa_format_event(char *str,const size_t str_size, const int event)
 	n = strlen(str);
 	if (n && str[n - 1] == '|')
 		str[n -1] = '\0';
+}
+
+void ssa_format_admin_msg(char *buf, size_t size, const struct ssa_admin_msg *msg)
+{
+	int n, len = ntohs(msg->hdr.len);
+
+	n = snprintf(buf, size,  "Version: %d Status: %d Method: %d Op: %d Flags: %d Len: %d",
+			msg->hdr.version, msg->hdr.status, msg->hdr.method,
+			ntohs(msg->hdr.opcode), ntohs(msg->hdr.flags), len);
+	if (len <= sizeof(msg->hdr))
+		return;
+
+	size -= n;
+
+	n = snprintf(buf, size, "Payload: ");
+	size -= n;
+
+	switch (msg->hdr.opcode) {
+	case SSA_ADMIN_CMD_PING:
+		return;
+	case SSA_ADMIN_CMD_COUNTER:
+		{
+		const struct ssa_admin_counter *payload = &msg->data.counter;
+
+		n = snprintf(buf, size, " N: %d\n", payload->n);
+		}
+		break;
+	case SSA_ADMIN_CMD_NODE_INFO:
+		{
+		const struct ssa_admin_node_info *payload = &msg->data.node_info;
+
+		n = snprintf(buf, n, "Type: %d Version %s N: %d\n", payload->type, payload->version,
+				ntohs(payload->connections_num));
+		}
+		break;
+	case SSA_ADMIN_CMD_NONE:
+	default:
+		snprintf(buf, n, "Unknown message\n");
+	};
 }
