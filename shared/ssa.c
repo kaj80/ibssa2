@@ -6915,7 +6915,7 @@ static void *ssa_admin_handler(void *context)
 						admin_request.hdr.method, ntohs(admin_request.hdr.opcode),
 						ntohs(admin_request.hdr.len));
 
-					ssa_print_admin_msg(admin_request);
+					ssa_print_admin_msg(&admin_request);
 
 					if (!ssa_admin_verify_message(&admin_request)) {
 						ssa_log_warn(SSA_LOG_CTRL,
