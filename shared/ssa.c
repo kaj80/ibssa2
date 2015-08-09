@@ -3733,7 +3733,6 @@ static struct ssa_db *ssa_calculate_prdb(struct ssa_svc *svc,
 	}
 
 	if (prdb) {
-		consumer->smdb_epoch = epoch;
 		ssa_db_destroy(consumer->prdb_current);
 		consumer->prdb_current = prdb;
 	}
@@ -3748,6 +3747,7 @@ static struct ssa_db *ssa_calculate_prdb(struct ssa_svc *svc,
 		goto skip_update;
 	}
 
+	consumer->smdb_epoch = epoch;
 	if (++prdb_epoch == DB_EPOCH_INVALID)
 		prdb_epoch++;
 	actual_epoch = ssa_db_set_epoch(consumer->prdb_current, DB_DEF_TBL_ID, prdb_epoch);
