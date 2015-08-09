@@ -3713,10 +3713,10 @@ static struct ssa_db *ssa_calculate_prdb(struct ssa_svc *svc,
 						    " GID %s: %d (%s)\n",
 						    dump_dir, log_data,
 						    errno, strerror(errno));
-					goto skip_db_save;
+				} else {
+					ssa_db_save(dump_dir, access_context.smdb,
+							err_smdb_dump);
 				}
-				ssa_db_save(dump_dir, access_context.smdb,
-					    err_smdb_dump);
 			}
 			ssa_log(SSA_LOG_DEFAULT, "SMDB dump %s\n", dump_dir);
 		}
@@ -3749,13 +3749,12 @@ static struct ssa_db *ssa_calculate_prdb(struct ssa_svc *svc,
 					    "prdb dump to %s for GID %s: "
 					    "%d (%s)\n", dump_dir, log_data,
 					    errno, strerror(errno));
-				goto skip_db_save;
 			}
+		} else {
+			ssa_db_save(dump_dir, prdb, prdb_dump);
 		}
-		ssa_db_save(dump_dir, prdb, prdb_dump);
 	}
 
-skip_db_save:
 	if (prdb) {
 		if (++prdb_epoch == DB_EPOCH_INVALID)
 			prdb_epoch++;
