@@ -3578,7 +3578,7 @@ ssa_is_addr_data_changed(struct ssa_db *smdb_new, struct ssa_db *ipdb_prev)
 		return -1;
 	}
 
-	if (epoch == DB_EPOCH_INITIAL)
+	if (epoch == DB_EPOCH_INVALID + 1)
 		first_update = 1;
 
 	if (!ipdb_prev) {
