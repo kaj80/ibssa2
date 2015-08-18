@@ -41,7 +41,7 @@
 #include <string.h>
 #include <infiniband/ssa_db.h>
 
-static int get_table_id(const char *name, struct db_dataset *dataset,
+int get_table_id(const char *name, struct db_dataset *dataset,
 			struct db_table_def *tbl_def)
 {
 	int table_id = -1;
