@@ -7322,6 +7322,10 @@ static void *ssa_admin_handler(void *context)
 								"connection from GID %s LID %u not found\n",
 								log_data, msg.data.conn_data.remote_lid);
 					break;
+				case SSA_DB_QUERY:
+					ssa_log(SSA_LOG_VERBOSE | SSA_LOG_CTRL,
+						"SSA_DB_QUERY received in admin thread from socket %u\n", fds[i].fd);
+					break;
 				default:
 					ssa_log_warn(SSA_LOG_CTRL,
 						     "ignoring unexpected msg "
