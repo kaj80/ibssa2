@@ -7326,11 +7326,6 @@ static void *ssa_admin_handler(void *context)
 
 						memcpy(&connection_info->remote_gid, &msg.data.conn_data.remote_gid.raw, sizeof(connection_info->remote_gid));
 						g_hash_table_replace(connections_hash, GINT_TO_POINTER(msg.data.conn_data.rsock), connection_info);
-						if (connection_info->connection_type == SSA_CONN_TYPE_UPSTREAM) {
-#ifdef ACM
-							ret = ssa_upstream_query_db_inner(svc->sock_adminup[0]);
-#endif
-						}
 					}
 				}
 					break;
