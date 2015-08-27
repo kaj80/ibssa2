@@ -44,6 +44,11 @@
 #include <osd.h>
 #include <ssa_admin.h>
 
+enum {
+	ADMIN_PARSE_ARGS_OK = 0,
+	ADMIN_PARSE_ARGS_ERROR = -1
+};
+
 static int src_port = -1;
 static int admin_port;
 static const char *ca_name;
@@ -251,7 +256,7 @@ static int parse_opts(int argc, char **argv, int *status)
 
 	if (argc <= 1) {
 		show_usage();
-		*status = -1;
+		*status = ADMIN_PARSE_ARGS_ERROR;
 		ret = 1;
 		goto out;
 	}
@@ -263,7 +268,7 @@ static int parse_opts(int argc, char **argv, int *status)
 	long_option_arr = calloc(1, opt_num * sizeof(*long_option_arr));
 	if (!long_option_arr) {
 		fprintf(stderr, "ERROR - unable to allocate memory for parser\n");
-		*status = -1;
+		*status = ADMIN_PARSE_ARGS_ERROR;
 		ret = 1;
 		goto out;
 	}
@@ -305,7 +310,7 @@ static int parse_opts(int argc, char **argv, int *status)
 			break;
 		case 'v':
 			show_version();
-			*status = 0;
+			*status = ADMIN_PARSE_ARGS_OK;
 			ret = 1;
 			goto out;
 		case 'd':
@@ -371,7 +376,7 @@ static int parse_opts(int argc, char **argv, int *status)
 		case '?':
 		case 'h':
 			show_usage();
-			*status = 0;
+			*status = ADMIN_PARSE_ARGS_OK;
 			ret = 1;
 			goto out;
 		default:
@@ -382,7 +387,7 @@ static int parse_opts(int argc, char **argv, int *status)
 	if (dest_lid && dest_gid) {
 		fprintf(stderr, "Destination address ambiguity: "
 			"both GID and LID are specified\n");
-		*status = -1;
+		*status = ADMIN_PARSE_ARGS_ERROR;
 		ret = 1;
 		goto out;
 	}
@@ -390,7 +395,7 @@ static int parse_opts(int argc, char **argv, int *status)
 	if (optind == argc) {
 		fprintf(stderr, "No command specified\n");
 		show_usage();
-		*status = -1;
+		*status = ADMIN_PARSE_ARGS_ERROR;
 		ret = 1;
 		goto out;
 	}
