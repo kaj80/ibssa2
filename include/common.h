@@ -314,6 +314,7 @@ void ssa_ctrl_conn(struct ssa_class *ssa, struct ssa_svc *svc);
 void ssa_ctrl_stop(struct ssa_class *ssa);
 
 int ssa_compare_gid(const void *gid1, const void *gid2);
+int is_gid_not_zero(union ibv_gid *gid);
 
 
 static inline struct ssa_device *ssa_dev(struct ssa_class *ssa, int index)

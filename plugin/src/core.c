@@ -167,7 +167,6 @@ static struct ssa_db *p_ref_smdb = NULL;
 #endif
 
 static int sock_coreextract[2];
-static const union ibv_gid zero_gid = { {0} };
 
 /* Forward declarations */
 #ifdef SIM_SUPPORT_SMDB
@@ -178,15 +177,6 @@ static int ssa_extract_process(osm_opensm_t *p_osm, struct ssa_db *p_ref_smdb,
 #ifndef SIM_SUPPORT
 static void core_free_member(void *gid);
 
-static int is_gid_not_zero(union ibv_gid *gid)
-{
-	int ret = 0;
-
-	if (ssa_compare_gid(&zero_gid, gid))
-		ret = 1;
-
-	return ret;
-}
 
 /* Should the following two DList routines go into a new dlist.c in shared ? */
 static DLIST_ENTRY *DListFind(DLIST_ENTRY *entry, DLIST_ENTRY *list)

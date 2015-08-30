@@ -70,6 +70,10 @@ struct admin_disconnect_command {
 	} id;
 };
 
+struct admin_rejoin_command {
+	union ibv_gid parent;
+};
+
 enum nodeinfo_mode {
 	NODEINFO_FULL = 0xFF,
 	NODEINFO_SINGLELINE = 0x1,
@@ -109,6 +113,7 @@ struct admin_command {
 		struct admin_count_command count_cmd;
 		struct admin_nodeinfo_command nodeinfo_cmd;
 		struct admin_disconnect_command disconnect_cmd;
+		struct admin_rejoin_command rejoin_cmd;
 	} data;
 	short recursive;
 };
@@ -174,6 +179,10 @@ static void dbquery_command_output(struct admin_command *cmd,
 				   struct cmd_exec_info *exec_info,
 				   union ibv_gid remote_gid,
 				   const struct ssa_admin_msg *msg);
+static int rejoin_init(struct admin_command *cmd);
+static int rejoin_handle_param(struct admin_command *cmd, const char *param);
+static int rejoin_command_create_msg(struct admin_command *cmd,
+				     struct ssa_admin_msg *msg);
 static void rejoin_command_output(struct admin_command *cmd,
 				  struct cmd_exec_info *exec_info,
 				  union ibv_gid remote_gid,
@@ -239,10 +248,10 @@ static struct cmd_struct_impl admin_cmd_command_impls[] = {
 		  "Force ACM node to pull data from Access node" }
 	},
 	[SSA_ADMIN_CMD_REJOIN] = {
-		NULL,
-		NULL, NULL,
+		rejoin_init,
+		NULL,  rejoin_handle_param,
 		default_destroy,
-		default_create_msg,
+		rejoin_command_create_msg,
 		rejoin_command_output,
 		{},
 		{ NULL, default_print_usage,
@@ -1276,6 +1285,50 @@ static void dbquery_command_output(struct admin_command *cmd,
 				   const struct ssa_admin_msg *msg)
 {
 	printf("DB Query request was sent\n");
+}
+
+static int rejoin_init(struct admin_command *cmd)
+{
+	struct admin_rejoin_command *rejoin_cmd;
+
+	rejoin_cmd = (struct admin_rejoin_command *) &cmd->data.rejoin_cmd;
+
+	memset(&rejoin_cmd->parent, '\0', sizeof(rejoin_cmd->parent));
+	return 0;
+}
+
+static int rejoin_handle_param(struct admin_command *cmd, const char *param)
+{
+	struct admin_rejoin_command *rejoin_cmd;
+
+	rejoin_cmd = (struct admin_rejoin_command *) &cmd->data.rejoin_cmd;
+
+	if (cmd->recursive) {
+		fprintf(stderr, "ERROR - rejoin in recursive mode doesn't support additional parameters\n");
+		return 1;
+	}
+
+	if (1 != inet_pton(AF_INET6, param, &rejoin_cmd->parent)) {
+		fprintf(stderr, "ERROR - param %s is not IB GID\n", param);
+		return 1;
+	}
+
+	return 0;
+}
+
+static int rejoin_command_create_msg(struct admin_command *cmd,
+				     struct ssa_admin_msg *msg)
+{
+	struct ssa_admin_rejoin *rejoin_msg = &msg->data.rejoin;
+	struct admin_rejoin_command *rejoin_cmd;
+	uint16_t n;
+
+	rejoin_cmd = (struct admin_rejoin_command *) &cmd->data.rejoin_cmd;
+	memcpy(&rejoin_msg->parent_gid, rejoin_cmd->parent.raw, sizeof(rejoin_msg->parent_gid));
+	n = ntohs(msg->hdr.len) + sizeof(*rejoin_msg);
+	msg->hdr.len = htons(n);
+
+	return 0;
 }
 
 static void rejoin_command_output(struct admin_command *cmd,

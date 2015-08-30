@@ -180,6 +180,7 @@ int keepalive = 60;		/* seconds */
 int reconnect_timeout = 10;	/* seconds */
 int reconnect_max_count = 10;
 int rejoin_timeout = 1;		/* seconds */
+static const union ibv_gid zero_gid = { {0} };
 
 #ifdef ACCESS
 #ifdef SIM_SUPPORT_FAKE_ACM
@@ -305,6 +306,16 @@ int ssa_compare_gid(const void *gid1, const void *gid2)
 	return memcmp(gid1, gid2, 16);
 }
 
+int is_gid_not_zero(union ibv_gid *gid)
+{
+	int ret = 0;
+
+	if (ssa_compare_gid(&zero_gid, gid))
+		ret = 1;
+
+	return ret;
+}
+
 static be64_t ssa_svc_tid(struct ssa_svc *svc)
 {
 	return htonll((((uint64_t) svc->index) << 16) | svc->tid++);
@@ -348,8 +359,8 @@ static void sa_init_mad_hdr(struct ssa_svc *svc, struct umad_hdr *hdr,
 	hdr->attr_id = htons(attr_id);
 }
 
-static void ssa_init_join(struct ssa_svc *svc, uint8_t bad_parent,
-			  struct ssa_mad_packet *mad)
+static void ssa_init_join(struct ssa_svc *svc, union ibv_gid parent,
+		          uint8_t bad_parent, struct ssa_mad_packet *mad)
 {
 	struct ssa_member_record *rec;
 
@@ -363,7 +374,7 @@ static void ssa_init_join(struct ssa_svc *svc, uint8_t bad_parent,
 	rec->node_type = svc->port->dev->ssa->node_type;
 	rec->bad_parent = bad_parent;
 	if ((svc->port->dev->ssa->node_type & SSA_NODE_CORE) == 0 || bad_parent)
-		memcpy(rec->parent_gid, svc->conn_dataup.remote_gid.raw, 16);
+		memcpy(rec->parent_gid, parent.raw, 16);
 	else
 		memset(rec->parent_gid, 0, 16);
 }
@@ -387,7 +398,9 @@ static void sa_init_path_query(struct ssa_svc *svc, struct sa_path_record *mad,
 	path->pkey = 0xFFFF;	/* default partition */
 }
 
-static int ssa_svc_join(struct ssa_svc *svc, uint8_t bad_parent)
+static int ssa_svc_join_inner(struct ssa_svc *svc, union ibv_gid parent,
+			      uint8_t bad_parent)
+
 {
 	struct ssa_umad umad;
 	int ret;
@@ -403,7 +416,7 @@ static int ssa_svc_join(struct ssa_svc *svc, uint8_t bad_parent)
 		lid = svc->port->sm_lid;
 
 	umad_set_addr(&umad.umad, lid, 1, svc->port->sm_sl, UMAD_QKEY);
-	ssa_init_join(svc, bad_parent, &umad.packet);
+	ssa_init_join(svc, parent, bad_parent, &umad.packet);
 	svc->state = SSA_STATE_JOINING;
 
 	ret = umad_send(svc->port->mad_portid, svc->port->mad_agentid,
@@ -413,6 +426,16 @@ static int ssa_svc_join(struct ssa_svc *svc, uint8_t bad_parent)
 		svc->state = SSA_STATE_IDLE;
 	}
 	return ret;
+}
+
+static int ssa_svc_join(struct ssa_svc *svc, uint8_t bad_parent)
+{
+	return ssa_svc_join_inner(svc, svc->conn_dataup.remote_gid, bad_parent);
+}
+
+static int ssa_svc_join_to_parent(struct ssa_svc *svc, union ibv_gid parent)
+{
+	return ssa_svc_join_inner(svc, parent, 0);
 }
 
 static void ssa_init_ssa_msg_hdr(struct ssa_msg_hdr *hdr, uint16_t op,
@@ -2295,9 +2318,15 @@ ssa_log(SSA_LOG_DEFAULT, "SSA_DB_UPDATE_READY from downstream with outstanding c
 				fds[UPSTREAM_DATA_FD_SLOT].revents = 0;
 				svc->state = SSA_STATE_IDLE;
 				ssa_upstream_stop_reconnection(svc, fds);
-				ssa_log(SSA_LOG_DEFAULT,
-					"start rejoin indicating bad parent in response to admin request\n");
-				ssa_svc_join(svc, 1);
+				if (is_gid_not_zero(&msg.data.gid)) {
+					ssa_log(SSA_LOG_DEFAULT,
+						"start rejoin indicating new parent in response to admin request\n");
+					ssa_svc_join_to_parent(svc, msg.data.gid);
+				} else {
+					ssa_log(SSA_LOG_DEFAULT,
+						"start rejoin indicating bad parent in response to admin request\n");
+					ssa_svc_join(svc, 1);
+				}
 				break;
 			default:
 				ssa_log_warn(SSA_LOG_CTRL,
@@ -6784,6 +6813,8 @@ static int ssa_admin_handle_rejoin(struct ssa_admin_msg *admin_request,
 
 	msg.hdr.len = sizeof msg.hdr;
 	msg.hdr.type = SSA_ADMIN_REJOIN;
+	memcpy(msg.data.gid.raw, admin_request->data.rejoin.parent_gid,
+	       sizeof(msg.data.gid.raw));
 
 	g_hash_table_iter_init(&iter, context->svcs_hash);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {

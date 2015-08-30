@@ -140,6 +140,7 @@ struct ssa_ctrl_msg_buf {
 		struct ssa_conn_done_payload conn_data;
 		struct ssa_db_update	db_upd;
 		int			status;
+		union ibv_gid		gid;
 	} data;
 };
 

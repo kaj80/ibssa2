@@ -141,6 +141,11 @@ struct ssa_admin_disconnect {
 		uint8_t		gid[16];
 	} id;
 };
+
+struct ssa_admin_rejoin {
+	uint8_t		parent_gid[16];
+};
+
 /*
  * ssa_admin_msg_hdr:
  * @version   - version of this structure
@@ -172,6 +177,7 @@ struct ssa_admin_msg {
 		struct ssa_admin_stats		stats;
 		struct ssa_admin_nodeinfo	nodeinfo;
 		struct ssa_admin_disconnect	disconnect;
+		struct ssa_admin_rejoin		rejoin;
 	} data;
 };
 
