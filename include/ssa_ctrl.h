@@ -90,7 +90,7 @@ struct ssa_conn_req_msg {
 struct ssa_conn_done_payload {
 	int			rsock;
 	int			type;
-	int 			dbtype;
+	int			dbtype;
 	union ibv_gid		remote_gid;
 	uint16_t		remote_lid;
 };
